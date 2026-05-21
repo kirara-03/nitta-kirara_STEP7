@@ -19,7 +19,7 @@ WHERE created_at BETWEEN '2024-01-01' AND '2024-12-31';
 SELECT *
 FROM users
 WHERE age < 30
-AND gender = '女性';
+AND gender = 'female';
 
 
 -- 設問4
@@ -58,7 +58,7 @@ SELECT
     users.name,
     COUNT(orders.id) AS order_count
 FROM users
-JOIN orders
+LEFT JOIN orders
 ON users.id = orders.user_id
 GROUP BY users.name;
 
@@ -125,7 +125,7 @@ WHERE orders.id IS NULL;
 SELECT order_id
 FROM order_items
 GROUP BY order_id
-HAVING COUNT(product_id) >= 2;
+HAVING COUNT(DISTINCT product_id) >= 2;
 
 
 -- 設問13
@@ -178,10 +178,11 @@ LIMIT 1;
 -- 各月の注文件数を取得
 
 SELECT
+    YEAR(order_date) AS year,
     MONTH(order_date) AS month,
     COUNT(id) AS order_count
 FROM orders
-GROUP BY MONTH(order_date);
+GROUP BY YEAR(order_date), MONTH(order_date);
 
 
 -- 設問17
@@ -206,14 +207,21 @@ ON order_items(product_id);
 
 SELECT
     users.name,
-    AVG(products.price * order_items.quantity) AS average_amount
+    AVG(order_totals.total_amount) AS average_amount
 FROM users
-JOIN orders
-ON users.id = orders.user_id
-JOIN order_items
-ON orders.id = order_items.order_id
-JOIN products
-ON order_items.product_id = products.id
+JOIN (
+    SELECT
+        orders.id,
+        orders.user_id,
+        SUM(products.price * order_items.quantity) AS total_amount
+    FROM orders
+    JOIN order_items
+    ON orders.id = order_items.order_id
+    JOIN products
+    ON order_items.product_id = products.id
+    GROUP BY orders.id, orders.user_id
+) AS order_totals
+ON users.id = order_totals.user_id
 GROUP BY users.name;
 
 
@@ -239,8 +247,8 @@ VALUES (6, '中村愛', 25, '女性', '2025-06-01');
 -- 設問22
 -- 商品「エアコン（60000円）」を追加
 
-INSERT INTO products (product_name, price)
-VALUES ('エアコン', 60000);
+INSERT INTO products (id, product_name, price)
+VALUES (6, 'エアコン', 60000);
 
 
 -- 設問23
@@ -277,7 +285,7 @@ SET price = price * 1.1;
 
 UPDATE orders
 SET order_date = '2024-05-01'
-WHERE order_date < '2024-05-01';
+WHERE order_date <= '2024-05-31';
 
 
 -- 設問28
